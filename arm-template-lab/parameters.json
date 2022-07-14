@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "acg-labvmName": {
+      "value": "labvm01"
+    },
+    "acg-labvmAdminUserName": {
+      "value": "acgadmin"
+    },
+    "acg-labvmAdminPassword": {
+      "value": "1234ABCD!@#$"
+    },
+    "acg-labvmWindowsOSVersion": {
+      "value": "2012-R2-Datacenter"
+    },
+    "acgstorageType": {
+      "value": "Standard_LRS"
+    }
+  }
+}
