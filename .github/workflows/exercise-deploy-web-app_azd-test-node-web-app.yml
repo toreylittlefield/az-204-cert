@@ -26,12 +26,12 @@ jobs:
           npm install
           npm run build --if-present
           npm run test --if-present
-
+        working-directory: ./web-app-service-node/myExpressApp
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
         with:
           name: node-app
-          path: ./web-app-service-node/myExpressApp
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -53,4 +53,4 @@ jobs:
           app-name: 'azd-test-node-web-app'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_5BA05CF9502B4AF3BE0B48B5C4F8A2AD }}
-          package: ./web-app-service-node/myExpressApp
+          package: .
