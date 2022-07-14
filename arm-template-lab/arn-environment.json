@@ -1,0 +1,156 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "acg-labvmName": {
+      "minLength": 1,
+      "type": "String"
+    },
+    "acg-labvmAdminUserName": {
+      "minLength": 1,
+      "type": "String"
+    },
+    "acg-labvmAdminPassword": {
+      "type": "SecureString"
+    },
+    "acg-labvmWindowsOSVersion": {
+      "defaultValue": "2012-R2-Datacenter",
+      "allowedValues": ["2008-R2-SP1", "2012-Datacenter", "2012-R2-Datacenter", "Windows-Server-Technical-Preview"],
+      "type": "String"
+    },
+    "acgstorageType": {
+      "defaultValue": "Standard_LRS",
+      "allowedValues": ["Standard_LRS", "Standard_ZRS", "Standard_GRS", "Standard_RAGRS", "Premium_LRS"],
+      "type": "String"
+    }
+  },
+  "variables": {
+    "acg-lab-networkPrefix": "10.0.0.0/16",
+    "acg-lab-networkSubnet1Name": "Subnet-1",
+    "acg-lab-networkSubnet1Prefix": "10.0.0.0/24",
+    "acg-lab-networkSubnet2Name": "Subnet-2",
+    "acg-lab-networkSubnet2Prefix": "10.0.1.0/24",
+    "acg-labvmImagePublisher": "MicrosoftWindowsServer",
+    "acg-labvmImageOffer": "WindowsServer",
+    "acg-labvmOSDiskName": "acg-labvmOSDisk",
+    "acg-labvmVmSize": "Standard_B1S",
+    "acg-labvmVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'acg-lab-network')]",
+    "acg-labvmSubnetRef": "[concat(variables('acg-labvmVnetID'), '/subnets/', variables('acg-lab-networkSubnet1Name'))]",
+    "acg-labvmStorageAccountContainerName": "vhds",
+    "acg-labvmNicName": "[concat(parameters('acg-labvmName'), 'NetworkInterface')]",
+    "acgstorageName": "[concat('acgstorage', uniqueString(resourceGroup().id))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2015-06-15",
+      "name": "acg-lab-network",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "acg-lab-network"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": ["[variables('acg-lab-networkPrefix')]"]
+        },
+        "subnets": [
+          {
+            "name": "[variables('acg-lab-networkSubnet1Name')]",
+            "properties": {
+              "addressPrefix": "[variables('acg-lab-networkSubnet1Prefix')]"
+            }
+          },
+          {
+            "name": "[variables('acg-lab-networkSubnet2Name')]",
+            "properties": {
+              "addressPrefix": "[variables('acg-lab-networkSubnet2Prefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2015-06-15",
+      "name": "[variables('acg-labvmNicName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": ["[concat('Microsoft.Network/virtualNetworks/', 'acg-lab-network')]"],
+      "tags": {
+        "displayName": "acg-labvmNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('acg-labvmSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2015-06-15",
+      "name": "[parameters('acg-labvmName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('acgstorageName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', variables('acg-labvmNicName'))]"
+      ],
+      "tags": {
+        "displayName": "acg-labvm"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('acg-labvmVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('acg-labvmName')]",
+          "adminUsername": "[parameters('acg-labvmAdminUsername')]",
+          "adminPassword": "[parameters('acg-labvmAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('acg-labvmImagePublisher')]",
+            "offer": "[variables('acg-labvmImageOffer')]",
+            "sku": "[parameters('acg-labvmWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "acg-labvmOSDisk",
+            "vhd": {
+              "uri": "[concat('http://', variables('acgstorageName'), '.blob.core.windows.net/', variables('acg-labvmStorageAccountContainerName'), '/', variables('acg-labvmOSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('acg-labvmNicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2015-06-15",
+      "name": "[variables('acgstorageName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "acgstorage"
+      },
+      "properties": {
+        "accountType": "[parameters('acgstorageType')]"
+      }
+    }
+  ]
+}
