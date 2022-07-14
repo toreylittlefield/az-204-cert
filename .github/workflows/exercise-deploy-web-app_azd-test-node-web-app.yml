@@ -53,4 +53,4 @@ jobs:
           app-name: 'azd-test-node-web-app'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_5BA05CF9502B4AF3BE0B48B5C4F8A2AD }}
-          package: ./web-app-service-node/myExpressApp
+          package: .
